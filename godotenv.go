@@ -20,8 +20,8 @@ import (
 	"os"
 	"os/exec"
 	"sort"
-	"strconv"
 	"strings"
+	"unicode"
 )
 
 const doubleQuoteSpecialChars = "\\\n\r\"!$`"
@@ -159,13 +159,29 @@ func Write(envMap map[string]string, filename string) error {
 	return file.Sync()
 }
 
+func isInt(s string) bool {
+    s = strings.TrimPrefix(s, "-")
+
+    if len(s) == 0 {
+		return false
+	}
+
+	for _, r := range s {
+		if !unicode.IsDigit(r) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // Marshal outputs the given environment as a dotenv-formatted environment file.
 // Each line is in the format: KEY="VALUE" where VALUE is backslash-escaped.
 func Marshal(envMap map[string]string) (string, error) {
 	lines := make([]string, 0, len(envMap))
 	for k, v := range envMap {
-		if d, err := strconv.Atoi(v); err == nil {
-			lines = append(lines, fmt.Sprintf(`%s=%d`, k, d))
+		if isInt(v) {
+			lines = append(lines, fmt.Sprintf(`%s=%s`, k, v))
 		} else {
 			lines = append(lines, fmt.Sprintf(`%s="%s"`, k, doubleQuoteEscape(v)))
 		}
